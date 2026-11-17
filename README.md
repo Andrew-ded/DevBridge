@@ -43,3 +43,11 @@ On Android, add an OkHttp Interceptor that attaches `X-Correlation-ID` to outbou
 - The current UI Pause button freezes the visible window only approximately; it does not suspend the stream. A complete pause/resume buffer is future work.
 - No standalone MSI installer yet; use published self-contained executable.
 - The backend was not compiled in the authoring environment (no .NET SDK installed); build on Windows is required to verify runtime behavior.
+
+## Process Manager (v0.3)
+
+Open **PROCESSES**, add an absolute path to a Windows `.csproj` or published `.exe`, then press **Start**. DevBridge starts the program in its working directory, captures stdout/stderr, and streams the most recent 3000 lines to the browser. Filters, pause, Start/Stop/Restart, Start All/Stop All and an optional auto-start checkbox are available. Configurations are saved under `%LOCALAPPDATA%\DevBridge\processes.json`.
+
+**Requirements:** `dotnet run` requires the appropriate .NET SDK installed on the Windows machine. Published `.exe` programs do not need the SDK (framework-dependent apps may still need a runtime). Stopping a process forcibly terminates its entire process tree; unsaved in-memory state may be lost. Only add projects you trust: DevBridge executes them with your Windows user permissions. DevBridge listens on 127.0.0.1 only. For Windows services or IIS, this manager cannot attach to an already-running process and read its console.
+
+**Build:** the existing GitHub Actions workflow builds React and a self-contained win-x64 executable. No Node.js or .NET SDK is needed on the PC to *run DevBridge itself*.

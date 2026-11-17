@@ -31,11 +31,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Copy React assets into ASP.NET Core
+      - name: Verify React output
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force backend/wwwroot | Out-Null
-          Copy-Item frontend/dist/* backend/wwwroot/ -Recurse -Force
+          if (!(Test-Path 'backend/wwwroot/index.html')) { throw 'React build did not produce backend/wwwroot/index.html' }
+          Get-ChildItem backend/wwwroot -Recurse | Select-Object FullName
       - name: Publish self-contained Windows executable
         shell: pwsh
         run: |

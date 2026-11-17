@@ -1,0 +1,60 @@
+name: Build DevBridge for Windows
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install and build React
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          npm install --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Copy React assets into ASP.NET Core
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force backend/wwwroot | Out-Null
+          Copy-Item frontend/dist/* backend/wwwroot/ -Recurse -Force
+      - name: Publish self-contained Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish backend/DevBridge.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o publish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Pack release
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath DevBridge-win-x64.zip -Force
+      - name: Upload downloadable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevBridge-win-x64
+          path: DevBridge-win-x64.zip
+          retention-days: 30
+      - name: Publish GitHub Release for version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: DevBridge-win-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
